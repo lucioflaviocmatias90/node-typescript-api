@@ -17,4 +17,38 @@ describe('StormGlass client', () => {
     const response = await stormGlass.fetchPoints(lat, lng);
     expect(response).toEqual(stormglassNormalizedResponseFixture);
   });
+
+  it('should exclude imcomplete data points', async () => {
+    const lat = -33.792726;
+    const lng = 151.289824;
+    const imcompleteResponse = {
+      hours: [
+        {
+          windDirection: {
+            noaa: 300,
+          },
+          time: '2020-04-26T00:00:00+00:00',
+        }
+      ]
+    };
+
+    mockedAxios.get.mockResolvedValue({ data: imcompleteResponse });
+
+    const stormGlass = new StormGlass(mockedAxios);
+    const response = await stormGlass.fetchPoints(lat, lng);
+
+    expect(response).toEqual([]);
+  });
+
+  it('should a get generic error from StormGlass service when the request fail before researching the service', async () => {
+    const lat = -33.792726;
+    const lng = 151.289824;
+
+    mockedAxios.get.mockRejectedValue({ message: 'Network Error' });
+
+    const stormGlass = new StormGlass(mockedAxios);
+    expect(await stormGlass.fetchPoints(lat, lng)).rejects.toThrow(
+      'Unexpected error when trying to communicate to StormGlass: Network Error'
+    );
+  });
 });
